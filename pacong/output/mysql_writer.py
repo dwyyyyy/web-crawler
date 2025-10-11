@@ -17,8 +17,8 @@ from ..data import CommodityData, ForexData
 class MySQLWriter:
     """MySQL数据库写入器，支持快照表、历史表和变更日志"""
     
-    def __init__(self, host: str = 'localhost', port: int = 3306, 
-                 user: str = 'root', password: str = '123456', 
+    def __init__(self, host: str = '10.180.248.144', port: int = 3306, 
+                 user: str = 'root', password: str = 'cJHZQYR7ajrXZd', 
                  database: str = 'pacong', charset: str = 'utf8mb4'):
         """
         初始化MySQL写入器
@@ -526,8 +526,14 @@ def test_mysql_writer():
             ) for i in range(3)
         ]
         
-        # 初始化写入器
-        writer = MySQLWriter()
+        # 初始化写入器，使用配置的数据库连接信息
+        writer = MySQLWriter(
+            host='10.180.248.144',
+            port=3306,
+            user='root',
+            password='cJHZQYR7ajrXZd',
+            database='pacong'
+        )
         
         # 写入测试数据
         result = writer.write_commodity_data(test_commodities)

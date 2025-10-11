@@ -246,8 +246,8 @@ class CommodityService:
         return filepath
     
     def save_to_mysql(self, commodities: List[CommodityData], 
-                      host: str = 'localhost', port: int = 3306,
-                      user: str = 'root', password: str = '123456',
+                      host: str = '10.180.248.144', port: int = 3306,
+                      user: str = 'root', password: str = 'cJHZQYR7ajrXZd',
                       database: str = 'pacong') -> None:
         """保存数据到MySQL数据库"""
         if not commodities:

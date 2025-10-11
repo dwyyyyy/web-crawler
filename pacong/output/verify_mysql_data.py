@@ -10,8 +10,8 @@ from datetime import datetime
 class MySQLDataVerifier:
     """MySQL数据验证工具类"""
     
-    def __init__(self, host: str = 'localhost', port: int = 3306, 
-                 user: str = 'root', password: str = '123456', 
+    def __init__(self, host: str = '10.180.248.144', port: int = 3306, 
+                 user: str = 'root', password: str = 'cJHZQYR7ajrXZd', 
                  database: str = 'pacong'):
         """
         初始化验证工具
@@ -175,10 +175,10 @@ class MySQLDataVerifier:
 if __name__ == "__main__":
     # 创建验证实例并运行验证
     verifier = MySQLDataVerifier(
-        host='localhost',
+        host='10.180.248.144',
         port=3306,
         user='root',
-        password='123456',
+        password='cJHZQYR7ajrXZd',
         database='pacong'
     )
     verifier.verify_all()

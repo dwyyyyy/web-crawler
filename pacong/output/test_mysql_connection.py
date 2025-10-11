@@ -11,8 +11,8 @@ from typing import Optional
 class MySQLTest:
     """MySQL连接测试工具类"""
     
-    def __init__(self, host: str = 'localhost', port: int = 3306, 
-                 user: str = 'root', password: str = '123456', 
+    def __init__(self, host: str = '10.180.248.144', port: int = 3306, 
+                 user: str = 'root', password: str = 'cJHZQYR7ajrXZd', 
                  database: str = 'pacong'):
         """
         初始化测试工具
@@ -144,10 +144,10 @@ class MySQLTest:
 if __name__ == "__main__":
     # 创建测试实例并运行测试
     mysql_test = MySQLTest(
-        host='localhost',
+        host='10.180.248.144',
         port=3306,
         user='root',
-        password='123456',
+        password='cJHZQYR7ajrXZd',
         database='pacong'
     )
     mysql_test.run_full_test()
