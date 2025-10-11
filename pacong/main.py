@@ -73,6 +73,12 @@ def setup_argument_parser() -> argparse.ArgumentParser:
     )
     
     parser.add_argument(
+        '--output-to-file',
+        action='store_true',
+        help='同时输出数据到CSV和Excel文件'
+    )
+    
+    parser.add_argument(
         '--version', '-v',
         action='version',
         version='Pacong 2.0 - 模块化爬虫系统'
@@ -207,11 +213,15 @@ def main():
         
         # 创建服务并运行分析
         commodity_service = CommodityService()
-        result = commodity_service.run_full_analysis(scraper_names)
+        result = commodity_service.run_full_analysis(scraper_names, args.output_to_file)
         
         # 打印结果
         if not args.quiet:
             print_summary(result)
+            
+        # 如果写入了数据库，显示数据库信息
+        if result.get('database') == 'MySQL' and not args.quiet:
+            print(f"\n🗄️  数据已成功写入MySQL数据库")
         
         logger.info("🎉 系统运行完成")
         
@@ -227,4 +237,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    main()

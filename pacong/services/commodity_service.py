@@ -12,6 +12,7 @@ from ..data import CommodityData, DataProcessor, DataValidator
 from ..scrapers import ScraperFactory
 from ..output.csv_writer import CSVWriter
 from ..output.excel_writer import ExcelWriter
+from ..output.mysql_writer import MySQLWriter
 
 
 class CommodityService:
@@ -244,12 +245,37 @@ class CommodityService:
         self.logger.info(f"💾 Excel文件已保存: {filepath}")
         return filepath
     
-    def run_full_analysis(self, scraper_names: Optional[List[str]] = None) -> Dict[str, Any]:
+    def save_to_mysql(self, commodities: List[CommodityData], 
+                      host: str = 'localhost', port: int = 3306,
+                      user: str = 'root', password: str = '123456',
+                      database: str = 'pacong') -> None:
+        """保存数据到MySQL数据库"""
+        if not commodities:
+            self.logger.warning("无商品数据可写入MySQL")
+            return
+        
+        try:
+            mysql_writer = MySQLWriter(
+                host=host,
+                port=port,
+                user=user,
+                password=password,
+                database=database
+            )
+            mysql_writer.write_commodity_data(commodities)
+            self.logger.info("💾 数据已成功写入MySQL数据库")
+        except Exception as e:
+            self.logger.error(f"❌ 写入MySQL数据库失败: {e}")
+            raise
+    
+    def run_full_analysis(self, scraper_names: Optional[List[str]] = None, 
+                          output_to_file: bool = False) -> Dict[str, Any]:
         """
         运行完整的商品数据分析
         
         Args:
             scraper_names: 要使用的爬虫名称列表
+            output_to_file: 是否输出到文件（CSV和Excel）
             
         Returns:
             Dict: 分析结果
@@ -266,17 +292,24 @@ class CommodityService:
         # 生成摘要
         summary = self.generate_market_summary(commodities)
         
-        # 保存文件
-        csv_file = self.save_to_csv(commodities)
-        excel_file = self.save_to_excel(commodities)
+        # 保存到MySQL数据库
+        self.save_to_mysql(commodities)
+        
+        files = {}
+        if output_to_file:
+            # 保存文件（如果需要）
+            csv_file = self.save_to_csv(commodities)
+            excel_file = self.save_to_excel(commodities)
+            files = {
+                'csv': str(csv_file),
+                'excel': str(excel_file)
+            }
         
         self.logger.info("✅ 完整分析完成")
         
         return {
             'commodities': commodities,
             'summary': summary,
-            'files': {
-                'csv': str(csv_file),
-                'excel': str(excel_file)
-            }
-        } 
+            'files': files,
+            'database': 'MySQL'
+        }
