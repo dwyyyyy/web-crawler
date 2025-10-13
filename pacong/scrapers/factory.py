@@ -89,6 +89,13 @@ def _auto_register_scrapers():
     except ImportError:
         pass
     
+    # 新增：注册新浪外盘期货爬虫
+    try:
+        from .sina_forex_futures import SinaForexFuturesScraper
+        ScraperFactory.register_scraper('sina_forex_futures', SinaForexFuturesScraper)
+    except ImportError:
+        pass
+    
     # 注册通用配置驱动爬虫
     try:
         from .generic_scraper import register_generic_scrapers
@@ -105,4 +112,4 @@ def _auto_register_scrapers():
 
 
 # 自动注册
-_auto_register_scrapers() 
+_auto_register_scrapers()

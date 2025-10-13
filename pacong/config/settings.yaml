@@ -58,6 +58,12 @@ data_sources:
     enabled: true
     data_url: "https://thedocs.worldbank.org/en/doc/18675f1d1639c7a34d463f59263ba0a2-0050012025/related/CMO-Historical-Data-Monthly.xlsx"
     timeout: 60
+    
+  # 新增：新浪外盘期货
+  sina_forex_futures:
+    enabled: true
+    url: "https://finance.sina.com.cn/money/future/hf.html"
+    timeout: 30
 
 # 商品分类配置
 commodity_categories:
@@ -71,7 +77,7 @@ commodity_categories:
     
   industrial_metals:
     name: "工业金属"
-    items: ["铜", "铝", "锌", "镍", "铅", "锡"]
+    items: ["铜", "铝", "锌", "镍", "铅", "锡","新加坡铁矿石"]
     
   agriculture:
     name: "农产品"
@@ -104,11 +110,11 @@ generic_scrapers:
         current_price: "float"
 
   # 示例：Yahoo Finance 
-  yahoo_finance:
+  sina_finance_com:
     enabled: false  # 暂时关闭，可根据需要启用
-    name: "Yahoo Finance 商品数据"
+    name: "sina_finance 商品数据"
     type: "commodity"
-    urls: "https://finance.yahoo.com/commodities"
+    urls: "https://finance.sina.com.cn/money/future/hf.html"
     method: "requests"  # requests | selenium | applescript
     parser: "html"      # html | json | regex
     
@@ -189,4 +195,4 @@ simple_scrapers:
     
     headers:
       "Accept": "application/json"
-      "User-Agent": "Pacong Simple Scraper" 
+      "User-Agent": "Pacong Simple Scraper"
