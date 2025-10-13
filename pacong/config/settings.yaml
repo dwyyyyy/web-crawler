@@ -57,7 +57,7 @@ data_sources:
   worldbank:
     enabled: true
     data_url: "https://thedocs.worldbank.org/en/doc/18675f1d1639c7a34d463f59263ba0a2-0050012025/related/CMO-Historical-Data-Monthly.xlsx"
-    timeout: 60
+    timeout: 30
     
   # 新增：新浪外盘期货
   sina_forex_futures:
