@@ -52,7 +52,7 @@ app.add_middleware(
 logger = get_logger(__name__)
 
 class MySQLReader(MySQLWriter):
-    """MySQL数据库读取器，扩展MySQLWriter"""
+    """MySQL数据库读取器，扩展MySQLWriter提供读取数据的功能"""
     
     def get_latest_price(self, commodity_name: str) -> Dict[str, Any]:
         """
@@ -63,6 +63,9 @@ class MySQLReader(MySQLWriter):
         
         Returns:
             Dict: 包含商品最新价格和涨跌幅的数据
+        
+        Raises:
+            Exception: 当数据库操作失败时抛出异常
         """
         try:
             self._connect()
@@ -85,6 +88,9 @@ class MySQLReader(MySQLWriter):
                     result['version_ts'] = result['version_ts'].isoformat()
                 
                 return result
+        except pymysql.MySQLError as e:
+            logger.error(f"MySQL数据库错误 - 获取最新价格: {e}")
+            raise
         except Exception as e:
             logger.error(f"获取最新价格数据失败: {e}")
             raise
@@ -102,6 +108,9 @@ class MySQLReader(MySQLWriter):
         
         Returns:
             List[Dict]: 包含历史价格数据的列表
+        
+        Raises:
+            Exception: 当数据库操作失败时抛出异常
         """
         try:
             self._connect()
@@ -111,75 +120,80 @@ class MySQLReader(MySQLWriter):
             
             with self.connection.cursor() as cursor:
                 sql = """
-                SELECT name, current_price, change_percent, version_ts 
+                SELECT name, current_price, created_at 
                 FROM commodity_history 
-                WHERE name = %s AND version_ts BETWEEN %s AND %s
-                ORDER BY version_ts ASC
+                WHERE name = %s AND created_at BETWEEN %s AND %s
+                ORDER BY created_at ASC
                 """
                 cursor.execute(sql, (commodity_name, start_time, end_time))
                 results = cursor.fetchall()
                 
                 # 格式化时间戳
                 for result in results:
-                    if 'version_ts' in result and isinstance(result['version_ts'], datetime):
-                        result['version_ts'] = result['version_ts'].isoformat()
+                    if 'created_at' in result and isinstance(result['created_at'], datetime):
+                        result['created_at'] = result['created_at'].isoformat()
                 
                 return results
+        except pymysql.MySQLError as e:
+            logger.error(f"MySQL数据库错误 - 获取历史价格: {e}")
+            raise
         except Exception as e:
             logger.error(f"获取历史价格数据失败: {e}")
             raise
         finally:
             self._disconnect()
     
-    def get_price_changes(self, request_id: Optional[str] = None, start_time: Optional[datetime] = None, 
+    def get_price_changes(self, commodity_name: Optional[str] = None, start_time: Optional[datetime] = None, 
                          end_time: Optional[datetime] = None) -> List[Dict[str, Any]]:
         """
-        查看某次抓取或某时间段的价格变化
+        查询历史表中商品的价格、涨跌幅和创建时间
         
         Args:
-            request_id: 请求ID（某次抓取的标识）
+            commodity_name: 商品名称
             start_time: 开始时间
             end_time: 结束时间
         
         Returns:
-            List[Dict]: 包含价格变化记录的数据
+            List[Dict]: 包含商品价格、涨跌幅和创建时间的数据
+        
+        Raises:
+            Exception: 当数据库操作失败时抛出异常
         """
         try:
             self._connect()
+            
+            if end_time is None:
+                end_time = datetime.now()
             
             with self.connection.cursor() as cursor:
                 # 构建查询条件
                 conditions = []
                 params = []
                 
-                if request_id:
-                    conditions.append("log.request_id = %s")
-                    params.append(request_id)
+                if commodity_name:
+                    conditions.append("name = %s")
+                    params.append(commodity_name)
                 
                 if start_time:
-                    conditions.append("log.version_ts >= %s")
+                    conditions.append("created_at >= %s")
                     params.append(start_time)
                 
                 if end_time:
-                    conditions.append("log.version_ts <= %s")
+                    conditions.append("created_at <= %s")
                     params.append(end_time)
                 
                 # 如果没有条件，默认查询最近24小时的数据
                 if not conditions:
-                    conditions.append("log.version_ts >= %s")
+                    conditions.append("created_at >= %s")
                     params.append(datetime.now() - timedelta(days=1))
                 
                 # 构建SQL查询
                 where_clause = " AND ".join(conditions)
                 sql = f"""
-                SELECT cl.name, cl.chinese_name, cl.currency, 
-                       cl.current_price, cl.change_percent, cl.version_ts,
-                       cl.source, cl.id as entity_id,
-                       log.request_id, log.field_name, log.old_value, log.new_value, log.change_type
-                FROM change_log log
-                JOIN commodity_latest cl ON log.entity_id = cl.id
+                SELECT name, current_price, change_percent, created_at
+                FROM commodity_history
                 WHERE {where_clause}
-                ORDER BY log.version_ts DESC, log.log_id DESC
+                ORDER BY created_at DESC
                 LIMIT 1000
                 """
                 
@@ -188,10 +202,13 @@ class MySQLReader(MySQLWriter):
                 
                 # 格式化时间戳
                 for result in results:
-                    if 'version_ts' in result and isinstance(result['version_ts'], datetime):
-                        result['version_ts'] = result['version_ts'].isoformat()
+                    if 'created_at' in result and isinstance(result['created_at'], datetime):
+                        result['created_at'] = result['created_at'].isoformat()
                 
                 return results
+        except pymysql.MySQLError as e:
+            logger.error(f"MySQL数据库错误 - 获取价格变化: {e}")
+            raise
         except Exception as e:
             logger.error(f"获取价格变化记录失败: {e}")
             raise
@@ -231,16 +248,17 @@ async def get_latest_price(
     name: str = Query(..., description="商品名称，例如：黄金期货主力合约")
 ):
     """
-    查询指定商品的最新价格和涨跌幅
+    查询指定商品的最新价格
     
     - **name**: 商品名称，例如：黄金期货主力合约
-    - **返回**: 包含商品名称、当前价格、涨跌幅等信息的JSON对象
+    - **返回**: 包含当前价格和版本时间戳的JSON对象
     """
     try:
         result = db_reader.get_latest_price(name)
         if not result:
             raise HTTPException(status_code=404, detail=f"未找到商品 '{name}' 的最新价格数据")
-        return result
+        # 返回价格和版本时间戳字段
+        return {"price": result["current_price"], "version_ts": result["version_ts"]}
     except HTTPException:
         raise
     except Exception as e:
@@ -263,43 +281,89 @@ async def get_price_history(
     """
     try:
         results = db_reader.get_price_history(name, start_time, end_time)
-        return {
-            "name": name,
-            "start_time": start_time.isoformat(),
-            "end_time": end_time.isoformat() if end_time else datetime.now().isoformat(),
-            "data_count": len(results),
-            "data": results
-        }
+        # 只保留创建时间和价格数据
+        simplified_results = [
+            {
+                "create_time": item["created_at"],
+                "price": item["current_price"]
+            } 
+            for item in results
+        ]
+        return simplified_results
     except Exception as e:
         logger.error(f"查询历史价格接口异常: {e}")
         raise HTTPException(status_code=500, detail="服务器内部错误")
 
-@app.get("/api/price-changes", summary="查询变更记录", tags=["商品价格接口"])
+@app.get("/api/price-changes", summary="查询历史价格数据", tags=["商品价格接口"])
 async def get_price_changes(
-    request_id: Optional[str] = Query(None, description="请求ID（某次抓取的标识）"),
+    name: Optional[str] = Query(None, description="商品名称，例如：白银COMEX"),
     start_time: Optional[datetime] = Query(None, description="开始时间，格式：YYYY-MM-DDTHH:MM:SS"),
     end_time: Optional[datetime] = Query(None, description="结束时间，格式：YYYY-MM-DDTHH:MM:SS")
 ):
     """
-    查看某次抓取或某时间段的价格变化
+    查询历史表中商品的价格和创建时间，并计算每条记录（除第一条外）与其上一条记录之间的价格变化百分比
     
-    - **request_id**: 请求ID（某次抓取的标识，可选）
+    - **name**: 商品名称（可选），例如：白银COMEX
     - **start_time**: 开始时间（可选），格式：YYYY-MM-DDTHH:MM:SS
     - **end_time**: 结束时间（可选），格式：YYYY-MM-DDTHH:MM:SS
-    - **返回**: 包含价格变化记录的数据列表
-    - **说明**: 如果不指定任何参数，默认查询最近24小时的变更记录
+    - **返回**: 包含商品价格、计算的价格变化百分比和创建时间的数据列表
+    - **说明**: 如果不指定任何参数，默认查询最近24小时的所有商品数据
     """
     try:
-        results = db_reader.get_price_changes(request_id, start_time, end_time)
+        # 获取原始数据
+        results = db_reader.get_price_changes(commodity_name=name, start_time=start_time, end_time=end_time)
+        
+        # 如果没有结果，直接返回
+        if not results:
+            return {
+                "name": name,
+                "start_time": start_time.isoformat() if start_time else None,
+                "end_time": end_time.isoformat() if end_time else None,
+                "data_count": 0,
+                "data": []
+            }
+        
+        # 首先按照创建时间升序排列数据，以便正确计算相邻记录间的变化
+        # 从数据库返回的数据已经是ISO格式的字符串，需要转回datetime对象进行排序
+        sorted_results = sorted(results, key=lambda x: datetime.fromisoformat(x['created_at']))
+        
+        # 准备处理后的数据列表
+        processed_data = []
+        
+        # 遍历排序后的结果，计算相邻记录间的价格变化百分比
+        for i, record in enumerate(sorted_results):
+            # 创建处理后的记录，不包含原始的change_percent
+            processed_record = {
+                "name": record["name"],
+                "current_price": record["current_price"],
+                "created_at": record["created_at"]
+            }
+            
+            # 对于第一条记录（最早的记录），没有前一条记录可以比较，所以不计算变化百分比
+            if i > 0:
+                # 获取前一条记录（更早的记录）
+                prev_record = sorted_results[i-1]
+                # 计算价格变化百分比：(当前价格 - 前一条价格) / 前一条价格 * 100
+                if prev_record["current_price"] != 0:  # 避免除以零
+                    price_change_percent = ((record["current_price"] - prev_record["current_price"]) / prev_record["current_price"]) * 100
+                    processed_record["calculated_change_percent"] = round(price_change_percent, 6)  # 保留六位小数，以便显示微小变化
+                else:
+                    processed_record["calculated_change_percent"] = None  # 无法计算
+            
+            processed_data.append(processed_record)
+        
+        # 按照创建时间降序返回（最新的记录在前），与原始接口保持一致的排序方式
+        processed_data.sort(key=lambda x: datetime.fromisoformat(x['created_at']), reverse=True)
+        
         return {
-            "request_id": request_id,
+            "name": name,
             "start_time": start_time.isoformat() if start_time else None,
             "end_time": end_time.isoformat() if end_time else None,
-            "data_count": len(results),
-            "data": results
+            "data_count": len(processed_data),
+            "data": processed_data
         }
     except Exception as e:
-        logger.error(f"查询价格变化接口异常: {e}")
+        logger.error(f"查询历史价格数据接口异常: {e}")
         raise HTTPException(status_code=500, detail="服务器内部错误")
 
 if __name__ == "__main__":
