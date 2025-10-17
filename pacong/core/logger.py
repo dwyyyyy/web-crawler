@@ -41,6 +41,16 @@ def setup_logger(
 ) -> logging.Logger:
     """设置日志记录器"""
     
+    # 获取logger实例（如果已存在则不会创建新的）
+    logger = logging.getLogger(name)
+    
+    # 检查logger是否已经配置过（避免重复配置）
+    if logger.handlers:
+        return logger
+    
+    # 禁止logger传播到父logger（避免日志重复）
+    logger.propagate = False
+    
     config = get_config()
     
     # 使用配置或默认值
@@ -48,12 +58,7 @@ def setup_logger(
     format_string = format_string or config.logging.format
     log_file = log_file or config.logging.file_path
     
-    # 创建logger
-    logger = logging.getLogger(name)
     logger.setLevel(getattr(logging, level.upper()))
-    
-    # 清除现有处理器
-    logger.handlers.clear()
     
     # 控制台处理器（带颜色）
     console_handler = logging.StreamHandler(sys.stdout)
@@ -92,7 +97,14 @@ def setup_logger(
 
 def get_logger(name: str) -> logging.Logger:
     """获取日志记录器"""
-    return setup_logger(name)
+    # 获取或创建logger
+    logger = logging.getLogger(name)
+    
+    # 如果logger还没有处理器，则设置它
+    if not logger.handlers:
+        setup_logger(name)
+    
+    return logger
 
 
 # 设置根日志记录器
@@ -146,4 +158,4 @@ def log_execution_time(func):
             logger.error(f"❌ {func.__qualname__} 执行失败 (耗时: {execution_time:.2f}秒): {e}")
             raise
     
-    return wrapper 
+    return wrapper

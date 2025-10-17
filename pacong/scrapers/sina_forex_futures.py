@@ -53,6 +53,38 @@ class SinaForexFuturesScraper(BaseScraper, WebScrapingMixin):
             "BP": ["IMM-英镑", 0],
             "EC": ["IMM-欧元", 0]
         }
+        
+        # 商品英文名称映射表
+        self.commodity_english_names = {
+            "纳指期货": "NASDAQ Futures",
+            "标普期货": "S&P Futures",
+            "道指期货": "Dow Jones Futures",
+            "NYBOT-棉花": "Cotton",
+            "LME镍3个月": "Nickel",
+            "LME铅3个月": "Lead",
+            "LME锡3个月": "Tin",
+            "LME锌3个月": "Zinc",
+            "LME铝3个月": "Aluminum",
+            "LME铜3个月": "Copper",
+            "CBOT-黄豆": "Soybeans",
+            "CBOT-小麦": "Wheat",
+            "CBOT-玉米": "Corn",
+            "CBOT-黄豆油": "Soybean Oil",
+            "CBOT-黄豆粉": "Soybean Meal",
+            "日本铝": "Japan Aluminum",
+            "日本橡胶": "Japan Rubber",
+            "COMEX铜": "Copper",
+            "NYMEX天然气": "Natural Gas",
+            "NYMEX原油": "Crude Oil",
+            "COMEX白银": "Silver",
+            "COMEX黄金": "Gold",
+            "美元指数期货": "US Dollar Index",
+            "IMM-瑞郎": "Swiss Franc",
+            "IMM-加元": "Canadian Dollar",
+            "IMM-日元": "Japanese Yen",
+            "IMM-英镑": "British Pound",
+            "IMM-欧元": "Euro"
+        }
     
     def get_data_sources(self) -> List[Dict[str, str]]:
         """获取数据源列表"""
@@ -127,8 +159,13 @@ class SinaForexFuturesScraper(BaseScraper, WebScrapingMixin):
                     change_percent = (change / prev_close * 100) if prev_close != 0 else 0.0
                     
                     # 构建数据字典
+                    # 获取英文名称，默认为中文名称
+                    english_name = self.commodity_english_names.get(name, name)
+                    
                     data = {
-                        'name': name,
+                        'name': name,  # 保持中文名称作为主要名称
+                        'english_name': english_name,  # 添加英文名称字段
+                        'chinese_name': name,  # 同时设置chinese_name字段以保持一致性
                         'code': code,
                         'latest_price': latest_price,
                         'open_price': open_price,
@@ -140,6 +177,9 @@ class SinaForexFuturesScraper(BaseScraper, WebScrapingMixin):
                         'source': 'sina_forex_futures',
                         'timestamp': datetime.now()
                     }
+                    
+                    # 记录日志时显示"中文名 (英文名)"格式
+                    self.logger.info(f"处理商品数据: {name} ({english_name})")
                     
                     # 如果有换算因子，计算人民币价格
                     if len(name_info) > 1 and name_info[1] != 0:
@@ -208,10 +248,14 @@ class SinaForexFuturesScraper(BaseScraper, WebScrapingMixin):
                 except (ValueError, TypeError):
                     cleaned_data[field] = 0.0
         
-        # 规范化商品名称
+        # 规范化商品名称（中文名称）
         if 'name' in cleaned_data:
             # 移除可能的代码前缀
             cleaned_data['name'] = cleaned_data['name'].replace('NYBOT-', '').replace('LME-', '').replace('CBOT-', '').replace('NYMEX-', '').replace('COMEX-', '').replace('IMM-', '')
+        
+        # 同时规范化chinese_name字段
+        if 'chinese_name' in cleaned_data:
+            cleaned_data['chinese_name'] = cleaned_data['chinese_name'].replace('NYBOT-', '').replace('LME-', '').replace('CBOT-', '').replace('NYMEX-', '').replace('COMEX-', '').replace('IMM-', '')
         
         # 确保时间戳格式正确
         if 'timestamp' in cleaned_data and not isinstance(cleaned_data['timestamp'], datetime):

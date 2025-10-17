@@ -40,22 +40,22 @@ api_keys:
 # 数据源配置
 data_sources:
   bloomberg:
-    enabled: true
+    enabled: false
     url: "https://www.bloomberg.com/markets/commodities"
     timeout: 30
     
   business_insider:
-    enabled: true
+    enabled: false
     url: "https://markets.businessinsider.com/commodities"
     timeout: 30
     
   sina_finance:
-    enabled: true
+    enabled: false
     base_url: "https://finance.sina.com.cn/money/forex/hq"
     timeout: 30
     
   worldbank:
-    enabled: true
+    enabled: false
     data_url: "https://thedocs.worldbank.org/en/doc/18675f1d1639c7a34d463f59263ba0a2-0050012025/related/CMO-Historical-Data-Monthly.xlsx"
     timeout: 30
     
@@ -69,25 +69,37 @@ data_sources:
 commodity_categories:
   energy:
     name: "能源"
-    items: ["原油", "天然气", "汽油", "取暖油", "煤炭"]
+    items: ["原油", "天然气", "汽油", "取暖油", "煤炭", "NYMEX天然气", "NYMEX原油", "布伦特原油"]
     
   precious_metals:
     name: "贵金属"
-    items: ["黄金", "白银", "铂金", "钯金"]
+    items: ["黄金", "白银", "铂金", "钯金", "COMEX白银", "COMEX黄金", "伦敦金", "伦敦银", "伦敦铂金", "伦敦钯金"]
     
   industrial_metals:
     name: "工业金属"
-    items: ["铜", "铝", "锌", "镍", "铅", "锡","新加坡铁矿石"]
+    items: ["铜", "铝", "锌", "镍", "铅", "锡", "新加坡铁矿石", "LME镍3个月", "LME铅3个月", "LME锡3个月", "LME锌3个月", "LME铝3个月", "LME铜3个月", "COMEX铜"]
     
   agriculture:
     name: "农产品"
-    items: ["玉米", "小麦", "大豆", "棉花", "糖", "咖啡", "可可"]
+    items: ["玉米", "小麦", "大豆", "棉花", "糖", "咖啡", "可可", "马棕油", "日橡胶", "美国原糖", "NYBOT-棉花", "CBOT-黄豆", "CBOT-小麦", "CBOT-玉米", "CBOT-黄豆油", "CBOT-黄豆粉"]
+  
+  crypto:
+    name: "加密货币"
+    items: ["CME比特币期货"]
+    
+  livestock:
+    name: "畜牧类"
+    items: ["CME-瘦肉猪"]
+    
+  carbon:
+    name: "碳排放"
+    items: ["欧洲碳排放"]
 
 # 通用爬虫配置（配置驱动，无需编写代码）
 generic_scrapers:
   # 测试示例：CoinGecko API（演示 JSON 解析）
   coingecko_demo:
-    enabled: true
+    enabled: false
     name: "CoinGecko 加密货币演示"
     type: "commodity"
     urls: "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd"
@@ -111,7 +123,7 @@ generic_scrapers:
 
   # 示例：Yahoo Finance 
   sina_finance_com:
-    enabled: false  # 暂时关闭，可根据需要启用
+    enabled: false  # 启用sina_finance_com
     name: "sina_finance 商品数据"
     type: "commodity"
     urls: "https://finance.sina.com.cn/money/future/hf.html"
@@ -186,7 +198,7 @@ generic_scrapers:
 # 简化版通用爬虫配置（基础功能测试）
 simple_scrapers:
   coingecko_test:
-    enabled: true
+    enabled: false
     name: "CoinGecko 测试"
     type: "commodity"
     urls: "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd"
@@ -196,3 +208,4 @@ simple_scrapers:
     headers:
       "Accept": "application/json"
       "User-Agent": "Pacong Simple Scraper"
+    
