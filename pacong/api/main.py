@@ -123,7 +123,7 @@ class MySQLReader(MySQLWriter):
                 SELECT name, current_price, created_at 
                 FROM commodity_history 
                 WHERE name = %s AND created_at BETWEEN %s AND %s
-                ORDER BY created_at ASC
+                ORDER BY created_at DESC
                 """
                 cursor.execute(sql, (commodity_name, start_time, end_time))
                 results = cursor.fetchall()
@@ -245,12 +245,12 @@ async def root():
 
 @app.get("/api/latest-price", summary="查询最新价格", tags=["商品价格接口"])
 async def get_latest_price(
-    name: str = Query(..., description="商品名称，例如：黄金期货主力合约")
+    name: str = Query(..., description="商品名称，例如：玉米")
 ):
     """
     查询指定商品的最新价格
     
-    - **name**: 商品名称，例如：黄金期货主力合约
+    - **name**: 商品名称，例如：玉米
     - **返回**: 包含当前价格和版本时间戳的JSON对象
     """
     try:
@@ -267,14 +267,14 @@ async def get_latest_price(
 
 @app.get("/api/price-history", summary="查询历史数据", tags=["商品价格接口"])
 async def get_price_history(
-    name: str = Query(..., description="商品名称，例如：黄金期货主力合约"),
+    name: str = Query(..., description="商品名称，例如：玉米"),
     start_time: datetime = Query(..., description="开始时间，格式：YYYY-MM-DDTHH:MM:SS"),
     end_time: Optional[datetime] = Query(None, description="结束时间，格式：YYYY-MM-DDTHH:MM:SS")
 ):
     """
     查询指定商品在某时间段的价格历史
     
-    - **name**: 商品名称，例如：黄金期货主力合约
+    - **name**: 商品名称，例如：玉米
     - **start_time**: 开始时间，格式：YYYY-MM-DDTHH:MM:SS
     - **end_time**: 结束时间（可选），格式：YYYY-MM-DDTHH:MM:SS
     - **返回**: 包含历史价格数据的列表
@@ -294,16 +294,16 @@ async def get_price_history(
         logger.error(f"查询历史价格接口异常: {e}")
         raise HTTPException(status_code=500, detail="服务器内部错误")
 
-@app.get("/api/price-changes", summary="查询历史价格数据", tags=["商品价格接口"])
+@app.get("/api/price-changes", summary="查询历史价格数据变化", tags=["商品价格接口"])
 async def get_price_changes(
-    name: Optional[str] = Query(None, description="商品名称，例如：白银COMEX"),
+    name: Optional[str] = Query(None, description="商品名称，例如：玉米"),
     start_time: Optional[datetime] = Query(None, description="开始时间，格式：YYYY-MM-DDTHH:MM:SS"),
     end_time: Optional[datetime] = Query(None, description="结束时间，格式：YYYY-MM-DDTHH:MM:SS")
 ):
     """
     查询历史表中商品的价格和创建时间，并计算每条记录（除第一条外）与其上一条记录之间的价格变化百分比
     
-    - **name**: 商品名称（可选），例如：白银COMEX
+    - **name**: 商品名称（可选），例如：玉米
     - **start_time**: 开始时间（可选），格式：YYYY-MM-DDTHH:MM:SS
     - **end_time**: 结束时间（可选），格式：YYYY-MM-DDTHH:MM:SS
     - **返回**: 包含商品价格、计算的价格变化百分比和创建时间的数据列表
@@ -352,7 +352,7 @@ async def get_price_changes(
             
             processed_data.append(processed_record)
         
-        # 按照创建时间降序返回（最新的记录在前），与原始接口保持一致的排序方式
+        # 按照创建时间降序返回（最新的记录在前），满足接口二按时间倒序的要求
         processed_data.sort(key=lambda x: datetime.fromisoformat(x['created_at']), reverse=True)
         
         return {
