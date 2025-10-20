@@ -14,6 +14,8 @@ cd d:\11111\web-crawler
 
 # 使用uvicorn运行FastAPI应用（开发模式）
 uvicorn pacong.api.main:app --host 0.0.0.0 --port 8000 --reload
+# 启动商品数据爬虫服务
+uvicorn pacong.api.crawler_service:app --host 0.0.0.0 --port 8001 --reload
 ```
 
 

@@ -25,7 +25,7 @@ simple_scrapers:
 
 ```bash
 python main.py --list-scrapers        # 查看数据源
-python main.py --scrapers sina_finance # 运行特定源  
+python main.py --scrapers sina_forex_futures # 运行特定源  
 python main.py --log-level DEBUG      # 调试模式
 ```
 
